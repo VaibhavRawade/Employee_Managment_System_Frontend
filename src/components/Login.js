@@ -1,0 +1,289 @@
+import React, { useState } from 'react';
+import {
+  TextField,
+  Button,
+  Card,
+  CardContent,
+  Typography,
+  Box,
+  IconButton,
+  InputAdornment,
+  Stack,
+  Alert,
+  Divider,
+  Dialog,
+  DialogTitle,
+  DialogContent,
+  DialogActions,
+} from '@mui/material';
+import { useNavigate, useLocation } from 'react-router-dom';
+import { Visibility, VisibilityOff } from '@mui/icons-material';
+import { setSession } from '../services/authService';
+import LoadingOverlay from './LoadingOverlay';
+
+const Login = () => {
+  const [username, setUsername] = useState('');
+  const [password, setPassword] = useState('');
+  const [showPassword, setShowPassword] = useState(false);
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState('');
+  const [successOpen, setSuccessOpen] = useState(false);
+  const navigate = useNavigate();
+  const location = useLocation();
+  const redirectPath = location.state?.from;
+  const destinationLabel = redirectPath ? 'Continue' : 'Go to dashboard';
+
+
+const isEmployeeLogin = location.pathname === "/employee-login";
+
+  const handleSubmit = async e => {
+    e.preventDefault();
+    setLoading(true);
+    setError('');
+
+    try {
+  //const response = await fetch('http://localhost:8082/authenticate', {
+
+    const apiUrl = isEmployeeLogin
+      ? 'http://localhost:8082/employee/authenticate'
+      : 'http://localhost:8082/authenticate';
+
+console.log("username =", username);
+console.log("password =", password);
+
+  const requestBody = isEmployeeLogin
+  ? {
+      email: username,
+      password
+    }
+  : {
+      username,
+      password
+    };
+    console.log("body =", requestBody);
+
+    const response = await fetch(apiUrl, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(requestBody),
+  });
+
+      const data = await response.json();
+      setLoading(false);
+
+
+      if (response.ok) {
+        setSession(data.token, username);
+
+        if (isEmployeeLogin) {
+           sessionStorage.setItem("empId", data.empId);
+           sessionStorage.setItem("roleId", data.roleId);
+           sessionStorage.setItem("roleName", data.roleName);
+        }
+        if (!isEmployeeLogin) {
+          sessionStorage.setItem("roleName", data.roleName);
+        }
+
+        setSuccessOpen(true);
+      } else {
+        setError('Invalid credentials. Please try again.');
+      }
+    } catch (err) {
+      setLoading(false);
+      setError('Invalid credentials or our server is not currently active. Please try again later.');
+    }
+  };
+
+
+
+  const handleTogglePasswordVisibility = () => {
+    setShowPassword(!showPassword);
+  };
+
+
+
+
+
+  
+
+  // const handleSuccessContinue = () => {
+  //   const target = redirectPath || '/dashboard';
+  //   setSuccessOpen(false);
+  //   navigate(target);
+  // };
+
+const handleSuccessContinue = () => {
+  setSuccessOpen(false);
+
+  if (isEmployeeLogin) {
+
+
+    navigate('/employee-profile');
+  } else {
+    const target = redirectPath || '/dashboard';
+    navigate(target);
+  }
+};
+
+
+
+
+  return (
+    <Box
+      sx={{
+        minHeight: '100vh',
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: 'center',
+        background: 'linear-gradient(135deg, #1E3C72 0%, #2A5298 100%)',
+        padding: 2,
+        borderRadius: 6,
+      }}
+    >
+      <Card
+        sx={{
+          width: '100%',
+          maxWidth: 900,
+          boxShadow: '0 25px 70px rgba(15, 23, 42, 0.25)',
+          border: '1px solid rgba(255, 255, 255, 0.12)',
+          borderRadius: 4,
+          overflow: 'hidden',
+          display: 'grid',
+          gridTemplateColumns: { xs: '1fr', md: '1.1fr 0.9fr' },
+          backdropFilter: 'blur(6px)',
+        }}
+      >
+        <Box
+          sx={{
+            background: 'linear-gradient(135deg, #f6d365 0%, #fda085 100%)',
+            color: '#1a1a1a',
+            padding: { xs: 3, md: 5 },
+            display: 'flex',
+            flexDirection: 'column',
+            justifyContent: 'center',
+            gap: 2,
+          }}
+        >
+          <Typography variant="h4" sx={{ fontWeight: 800 }}>
+            Welcome back
+          </Typography>
+          <Typography>Sign in to access your dashboard, manage employees, and keep your organization humming.</Typography>
+          <Stack spacing={1}>
+            <Typography sx={{ fontWeight: 600 }}>Why log in?</Typography>
+            <Typography variant="body2">• Securely access the insights-rich dashboard.</Typography>
+            <Typography variant="body2">• Manage teams, departments, and updates in one spot.</Typography>
+            <Typography variant="body2">• Pick up where you left off with your saved session.</Typography>
+          </Stack>
+        </Box>
+        <CardContent
+          sx={{
+            padding: { xs: 3, md: 4 },
+            background: 'rgba(255, 255, 255, 0.9)',
+            backdropFilter: 'blur(8px)',
+          }}
+        >
+
+
+          {/* <Typography variant="h5" component="h2" textAlign="center" sx={{ marginBottom: '0.5rem', fontWeight: 700 }}>
+            Login
+          </Typography> */}
+
+          <Typography
+  variant="h5"
+  component="h2"
+  textAlign="center"
+  sx={{ marginBottom: '0.5rem', fontWeight: 700 }}
+>
+  {isEmployeeLogin ? 'Employee Login' : 'Admin Login'}
+</Typography>
+
+
+          {redirectPath && (
+            <Alert severity="info" sx={{ marginBottom: '1rem' }}>
+              Please log in to continue to <strong>{redirectPath}</strong>.
+            </Alert>
+          )}
+          <form onSubmit={handleSubmit}>
+            <Stack spacing={2}>
+              <TextField
+                fullWidth
+                label={isEmployeeLogin ? "Email" : "Username"}
+                value={username}
+                onChange={e => setUsername(e.target.value)}
+                InputProps={{
+                  style: {
+                    fontFamily: 'Poppins, sans-serif',
+                  },
+                }}
+              />
+              <TextField
+                fullWidth
+                label="Password"
+                type={showPassword ? 'text' : 'password'}
+                value={password}
+                onChange={e => setPassword(e.target.value)}
+                InputProps={{
+                  endAdornment: (
+                    <InputAdornment position="end">
+                      <IconButton aria-label="toggle password visibility" onClick={handleTogglePasswordVisibility} edge="end">
+                        {showPassword ? <VisibilityOff /> : <Visibility />}
+                      </IconButton>
+                    </InputAdornment>
+                  ),
+                  style: {
+                    fontFamily: 'Poppins, sans-serif',
+                  },
+                }}
+              />
+              <Button fullWidth variant="contained" color="primary" type="submit" disabled={loading} sx={{ paddingY: 1.2 }}>
+                {loading ? 'Signing in…' : 'Login'}
+              </Button>
+              {error && (
+                <Typography color="error" textAlign="center" sx={{ marginTop: '-0.5rem' }}>
+                  {error}
+                </Typography>
+              )}
+              <Divider />
+
+
+          {!isEmployeeLogin && (
+              <Stack spacing={1} alignItems="center">
+                <Typography variant="body2">
+                  Don't have an account?{' '}
+                  <Button color="primary" component="a" href="/register" size="small">
+                    Register
+                  </Button>
+                </Typography>
+                <Typography variant="body2">
+                  Forgot your password?{' '}
+                  <Button color="primary" component="a" href="/verify-username" size="small">
+                    Reset Password
+                  </Button>
+                </Typography>
+              </Stack>
+            )}
+
+
+            </Stack>
+          </form>
+        </CardContent>
+      </Card>
+
+      {loading && <LoadingOverlay message="Signing you in…" />}
+
+      <Dialog open={successOpen} onClose={handleSuccessContinue} aria-labelledby="login-success-title">
+        <DialogTitle id="login-success-title">Login successful</DialogTitle>
+        <DialogContent>
+          <Typography variant="body1">Welcome back, {username || 'there'}! Ready to continue?</Typography>
+        </DialogContent>
+        <DialogActions>
+          <Button variant="contained" onClick={handleSuccessContinue}>
+            {destinationLabel}
+          </Button>
+        </DialogActions>
+      </Dialog>
+    </Box>
+  );
+};
+
+export default Login;
